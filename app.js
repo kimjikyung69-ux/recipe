@@ -1,4 +1,4 @@
-    /* ----------------------------------------------------
+/* ----------------------------------------------------
        1. Web Audio API 신디사이저 사운드 시스템
        ---------------------------------------------------- */
     let audioCtx = null;
@@ -1486,16 +1486,44 @@
         resMissingAlert.classList.remove('show');
       }
 
-      // 4. 사진 우선 표시, 실패 시 이모지 fallback
-      resDishImg.src = '';
-      resDishImg.style.display = 'block';
-      resDishFallback.style.display = 'none';
-      resDishImg.onerror = () => {
+      // 4. GitHub 사진 경로 자동 확인
+      // 컴퓨터의 assets 폴더에서 사진을 선택해 올려도, GitHub 저장소 루트에서
+      // 업로드했다면 실제 경로는 '파일명.jpg'입니다.
+      // 세 위치를 순서대로 시도해 업로드 장소가 달라도 사진이 나오게 합니다.
+      const originalPhoto = (recipe.photo || '').trim();
+      const photoName = originalPhoto.split('/').pop();
+      const candidates = photoName
+        ? [photoName, `assets/${photoName}`, `asset/${photoName}`]
+        : [];
+      let candidateIndex = 0;
+
+      function showPhotoFallback() {
         resDishImg.style.display = 'none';
         resDishFallback.style.display = 'flex';
         resFallbackIcon.innerText = recipe.fallbackEmoji || '🍳';
+        if (photoName) console.warn(`사진을 찾지 못했습니다: ${candidates.join(' / ')}`);
+      }
+
+      resDishImg.onload = () => {
+        resDishImg.style.display = 'block';
+        resDishFallback.style.display = 'none';
       };
-      resDishImg.src = recipe.photo;
+      resDishImg.onerror = () => {
+        candidateIndex += 1;
+        if (candidateIndex < candidates.length) {
+          resDishImg.src = candidates[candidateIndex];
+        } else {
+          showPhotoFallback();
+        }
+      };
+
+      resDishImg.style.display = 'none';
+      resDishFallback.style.display = 'none';
+      if (candidates.length) {
+        resDishImg.src = candidates[0];
+      } else {
+        showPhotoFallback();
+      }
 
       // 5. 예상 조리시간 & 난이도
       resCookTimeVal.innerText = `⏱️ 약 ${recipe.timeMin}분`;
